@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "API Design Course",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
