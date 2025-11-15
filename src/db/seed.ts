@@ -5,11 +5,11 @@ import {users, habits, entries, tags, habitTags} from './schema.ts'
 const seed = async() => {
   try{
     console.log('Clearing existing data...')
-    await db.delete(users)
+    await db.delete(entries)
     await db.delete(habitTags)
     await db.delete(habits)
-    await db.delete(entries)
     await db.delete(tags)
+    await db.delete(users)
 
     console.log('Creating demo users...')
 
@@ -71,7 +71,11 @@ const seed = async() => {
     console.log(`Email: ${user.email}`)
     console.log(`Password: ${user.password}`)
   } catch (e) {
-    console.error('seed failed', e)
+    console.error('Seed failed:', e)
+    if (e instanceof Error) {
+      console.error('Error message:', e.message)
+      console.error('Stack trace:', e.stack)
+    }
     process.exit(1)
   }
 }
