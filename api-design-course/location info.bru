@@ -1,0 +1,22 @@
+meta {
+  name: location info
+  type: http
+  seq: 5
+}
+
+get {
+  url: https://geocoding-api.open-meteo.com/v1/search?name=Kyiv&count=1&language=en&format=json
+  body: none
+  auth: inherit
+}
+
+params:query {
+  name: Kyiv
+  count: 1
+  language: en
+  format: json
+}
+
+settings {
+  encodeUrl: true
+}

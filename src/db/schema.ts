@@ -38,6 +38,7 @@ export const entries = pgTable('entries', {
   habitId: uuid('habit_id').references(() => habits.id, { onDelete: 'cascade' }).notNull(),
   note: text('note'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  completionDate: timestamp('completion_date')
 })
 
 export const tags = pgTable('tags', {

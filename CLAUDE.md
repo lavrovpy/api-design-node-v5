@@ -36,10 +36,11 @@ docker compose restart postgres # Restart PostgreSQL container
 docker compose -f docker-compose.prod.yml up -d  # Start production setup
 
 # Database Management (Drizzle Kit)
-npx drizzle-kit generate  # Generate migrations from schema changes
-npx drizzle-kit migrate   # Apply pending migrations
-npx drizzle-kit push      # Push schema changes directly to database (dev only)
-npx drizzle-kit studio    # Open Drizzle Studio for database inspection
+npm run db:generate  # Generate migrations from schema changes
+npm run db:migrate   # Apply pending migrations
+npm run db:push      # Push schema changes directly to database (dev only)
+npm run db:studio    # Open Drizzle Studio for database inspection
+npm run db:seed      # Seed the database with sample data
 
 # Access pgAdmin: http://localhost:5050
 # Login with credentials from .env file (default: admin@habittracker.com / admin)
@@ -63,12 +64,14 @@ src/
 ├── index.ts              # Entry point - starts the server
 ├── server.ts             # Express app configuration, middleware setup, route mounting
 ├── db/
-│   └── schema.ts         # Drizzle schema definitions (users, habits, entries, tags, habitTags)
+│   ├── schema.ts         # Drizzle schema definitions (users, habits, entries, tags, habitTags)
+│   ├── connection.ts     # Database connection singleton using pg Pool and @epic-web/remember
+│   └── seed.ts           # Database seeding script
 ├── middleware/
 │   └── validation.ts     # Zod validation middleware (validateBody, validateParams, validateQuery)
 └── routes/
     ├── authRoutes.ts     # Authentication endpoints (/api/auth/*)
-    ├── habbitRoutes.ts   # Habit management endpoints (/api/habbits/*)
+    ├── habitRoutes.ts    # Habit management endpoints (/api/habits/*)
     └── userRoutes.ts     # User management endpoints (/api/users/*)
 ```
 
@@ -96,19 +99,28 @@ src/
 #### 4. Route Organization
 - Routes are mounted under `/api` prefix in server.ts
 - Auth routes: `/api/auth/register`, `/api/auth/login`
-- Habit routes: `/api/habbits/*` (Note: typo in "habbits" is intentional in current code)
+- Habit routes: `/api/habits/*`
 - User routes: `/api/users/*`
 - Catch-all 404 handler for `/api/*` routes
 - Fallback serves static HTML from `public/index.html`
 
-#### 5. TypeScript Configuration
+#### 5. Database Connection Pattern
+- Connection singleton in `src/db/connection.ts` using `drizzle-orm/node-postgres`
+- Uses `@epic-web/remember` in development to maintain connection across hot reloads
+- In production, creates a new Pool instance directly
+- Schema is imported and passed to drizzle for type-safe queries
+- Export pattern: `export const db = drizzle({ client, schema })`
+
+#### 6. TypeScript Configuration
 - Uses Node.js native TypeScript support (no compilation step)
-- `allowImportingTsExtensions: true` - requires `.ts` extensions in imports
+- `rewriteRelativeImportExtensions: true` - allows omitting `.ts` in imports (rewrites at runtime)
+- `erasableSyntaxOnly: true` - only allows type-only imports/exports to avoid runtime errors
 - `module: "nodenext"` - ESM modules with Node.js resolution
 - `noEmit: true` - no compilation, files are run directly
 - `verbatimModuleSyntax: true` - strict import/export syntax
+- `allowImportingTsExtensions: true` - allows `.ts` extensions in imports
 
-#### 6. API Design Patterns (from API_DOCS.md)
+#### 7. API Design Patterns (from API_DOCS.md)
 - RESTful resource-based endpoints for CRUD operations
 - Action endpoints for business logic (e.g., `/habits/:id/complete`)
 - Data aggregation endpoints (e.g., `/habits/:id/stats` for streak calculations)
@@ -117,19 +129,17 @@ src/
 
 ### Important Implementation Details
 
-1. **Import Extensions**: All TypeScript imports MUST include `.ts` extensions (e.g., `import { app } from './server.ts'`)
+1. **Import Extensions**: TypeScript imports can include `.ts` extensions (e.g., `import { app } from './server.ts'`), though the `rewriteRelativeImportExtensions` setting allows omitting them as they're rewritten at runtime
 
-2. **Database Connection**: No database connection module exists yet - if implementing database operations, create a connection singleton in `src/db/index.ts` or similar
+2. **Database Connection**: Connection singleton exists at `src/db/connection.ts` - exports `db` instance configured with Drizzle ORM. Uses `@epic-web/remember` to prevent connection churn during hot reloads in development
 
-3. **Authentication Flow**: Routes are currently stubs returning mock responses. Actual JWT generation, password hashing, and authentication middleware need to be implemented
+3. **Authentication Flow**: Routes may be stubs returning mock responses. Check implementation status before relying on authentication logic
 
-4. **Test Setup**: Vitest is configured to run tests sequentially (`singleThread: true`) to avoid database conflicts. A `globalSetup` file is referenced but does not exist yet
+4. **Test Setup**: Vitest is configured to run tests sequentially (`pool: 'threads'` with `singleThread: true`) to avoid database conflicts. A `globalSetup` file (`./tests/setup/globalSetup.ts`) is referenced in config - verify it exists before running tests
 
-5. **CORS Configuration**: Currently allows `localhost:4142` as origin. Adjust for production deployment
+5. **CORS Configuration**: Currently allows `localhost:4142` as origin in the cors middleware. Adjust for production deployment or add additional allowed origins
 
-6. **Route Naming**: Current code has "habbits" (with double 'b') in routes and file names - this is inconsistent with API documentation which uses "habits"
-
-7. **API Versioning**: Routes are currently under `/api` prefix without explicit version. Consider `/api/v1` for future compatibility
+6. **API Versioning**: Routes are currently under `/api` prefix without explicit version (e.g., no `/api/v1`). Consider this for future compatibility if API breaking changes are anticipated
 
 ## Common Development Workflows
 
@@ -141,8 +151,8 @@ src/
 
 ### Modifying Database Schema
 1. Edit `src/db/schema.ts` to add/modify tables or columns
-2. Run `npx drizzle-kit generate` to create migration file
-3. Run `npx drizzle-kit migrate` to apply migration
+2. Run `npm run db:generate` to create migration file
+3. Run `npm run db:migrate` to apply migration
 4. Update TypeScript types if needed (Drizzle auto-generates from schema)
 
 ### Adding Environment Variables
@@ -155,5 +165,11 @@ src/
 2. Update `DATABASE_URL` in `.env` with your credentials (default works with Docker setup)
 3. Start PostgreSQL: `docker compose up -d`
 4. Wait for database to be ready (check with `docker compose logs postgres`)
-5. Generate and run migrations: `npx drizzle-kit generate && npx drizzle-kit migrate`
-6. (Optional) Access pgAdmin at http://localhost:5050 to inspect database
+5. Generate and run migrations: `npm run db:generate && npm run db:migrate`
+6. (Optional) Seed the database: `npm run db:seed`
+7. (Optional) Access pgAdmin at http://localhost:5050 to inspect database
+
+### Accessing Database
+- **Drizzle Studio**: Run `npm run db:studio` for a web-based database browser
+- **pgAdmin**: Access at http://localhost:5050 (credentials in `.env` file)
+- **Direct SQL**: Connect using connection string from `DATABASE_URL` in `.env`

@@ -1,6 +1,6 @@
 import express from 'express'
 import authRouter from './routes/authRoutes.ts'
-import habbitRouter from './routes/habbitRoutes.ts'
+import habitRouter from './routes/habitRoutes.ts'
 import userRouter from './routes/userRoutes.ts'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -44,7 +44,7 @@ app.post('/cake-json/:name/:id', (req, res) => {
 })
 
 app.use('/api/auth', authRouter)
-app.use('/api/habbits', habbitRouter)
+app.use('/api/habits', habitRouter)
 app.use('/api/users', userRouter)
 
 app.use('/api', (req, res) => {
@@ -61,3 +61,4 @@ app.use((req, res) => {
 
 export { app }
 export default app
+

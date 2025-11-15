@@ -1,0 +1,32 @@
+meta {
+  name: weather get
+  type: http
+  seq: 5
+}
+
+get {
+  url:     `GET https://geocoding-api.open-meteo.com/v1/search?name=<CITY>&count=1&language=en&format=json`
+    `GET https://geocoding-api.open-meteo.com/v1/search?name=<CITY>&count=1&language=en&format=json`
+https://geocoding-api.open-meteo.com/v1/search?name=Kyiv&count=1&language=en&format=json
+  body: none
+  auth: inherit
+}
+
+params:query {
+  name: <CITY>
+  count: 1
+  language: en
+  format: json`
+      `GET https://geocoding-api.open-meteo.com/v1/search?name=<CITY>
+  count: 1
+  language: en
+  format: json`
+  https://geocoding-api.open-meteo.com/v1/search?name=Kyiv
+  count: 1
+  language: en
+  format: json
+}
+
+settings {
+  encodeUrl: true
+}
