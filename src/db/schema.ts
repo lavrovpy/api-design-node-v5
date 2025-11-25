@@ -102,7 +102,12 @@ export type HabitTag = typeof habitTags.$inferSelect
 
 export const insertUserSchema = createInsertSchema(users)
 export const selectUserSchema = createSelectSchema(users)
-
 export const extendedInsertUserSchemaValidatioin = insertUserSchema.extend({
   email: z.string().includes('@')
+})
+
+export const insertHabitSchema = createInsertSchema(habits)
+export const extendedInsertHabitSchemaValidation = insertHabitSchema.extend({
+  tags: z.array(z.string()).optional(),
+  userId: z.string().optional() // will take from JWT
 })
