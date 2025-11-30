@@ -86,7 +86,7 @@ export const habitTagsRelations = relations(habitTags, ({ one }) => ({
     fields: [habitTags.habitId],
     references: [habits.id]
   }),
-  tags: one(tags, {
+  tag: one(tags, {
     fields: [habitTags.tagId],
     references: [tags.id]
   })
@@ -111,3 +111,4 @@ export const extendedInsertHabitSchemaValidation = insertHabitSchema.extend({
   tags: z.array(z.string()).optional(),
   userId: z.string().optional() // will take from JWT
 })
+export const updateHabitSchema = createInsertSchema(habits).partial()

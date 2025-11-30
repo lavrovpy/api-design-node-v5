@@ -51,13 +51,75 @@ export const getUserHabits = async (
       with: {
         habitTags: {
           with: {
-            tag: true,
+            tag: true
           }
         }
-      }
+      },
+      orderBy: [desc(habits.createdAt)]
     })
+
+    console.log('userHabitsWithTags', userHabitsWithTags)
+
+    const habitsWithTags = userHabitsWithTags.map(habit => ({
+      ...habit,
+      tags: habit.habitTags.map(ht => ht.tag),
+      habitTags: undefined, // do not return the original tags ids. If the value is undefined it will be stripped out of the response
+    }))
+
+    console.log('habitsWithTags', habitsWithTags)
+
+    res.status(200).json({habits: habitsWithTags})
   } catch(e){
     console.error('failed to get habits', e)
     res.status(500).json({error:  'failed to get habits'})
+  }
+}
+
+export const updateHabit = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try{
+
+    const id = req.params.id
+    const userId = req.user.id
+
+    const { tagIds, ...updates } = req.body
+
+    const habit = await db.query.habits.findFirst({
+      where: and(eq(habits.userId, userId), eq(habits.id, id))
+    })
+
+    if(!habit){
+      return res.status(404).json({message: 'habit not found'}).end()
+    }
+
+    const result = await db.transaction(async (tx) => {
+      const updatedHabit = await tx
+        .update(habits)
+        .set({...updates, updatedAt: new Date()})
+        .where(and(eq(habits.id, id), eq(habits.userId, userId)))
+        .returning()
+
+      if(!updatedHabit){
+        return res.status(401).end()
+      }
+
+      if(tagIds !== undefined){
+        await tx.delete(habitTags).where(eq(habitTags.habitId, id))
+
+      }
+    })
+
+
+    res.status(200).json({message: 'habit updated', habit})
+  } catch(e: unknown){
+    if(e instanceof Error){
+      console.error('failed to get habits', e)
+      res.status(500).json({error: e.cause ? e.cause : 'unknown reason for the error'})
+    } else{
+      console.error('failed to get habits', e)
+      res.status(500).json({error: 'failed to get habits'})
+    }
   }
 }
