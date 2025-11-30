@@ -108,11 +108,24 @@ export const updateHabit = async (
       if(tagIds !== undefined){
         await tx.delete(habitTags).where(eq(habitTags.habitId, id))
 
+        if(tagIds.length > 0){
+          const habitTagValues = tagIds.map((tagId: string) => ({
+            habitId: id,
+            tagId,
+          }))
+
+          await tx.insert(habitTags).values(habitTagValues)
+        }
       }
+
+      return updatedHabit
     })
 
 
-    res.status(200).json({message: 'habit updated', habit})
+    res.status(200).json({
+      message: 'habit updated',
+      habit: result
+    })
   } catch(e: unknown){
     if(e instanceof Error){
       console.error('failed to get habits', e)
